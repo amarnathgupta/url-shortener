@@ -1,6 +1,12 @@
 import prisma from "../config/db.js";
-import { checkUrlExists, saveUrl, updateUrl } from "../db/url.db.js";
+import {
+  checkUrlExists,
+  getUrlByCode,
+  saveUrl,
+  updateUrl,
+} from "../db/url.db.js";
 import { encodeBase62 } from "../utils/base62.util.js";
+import { cacheGet, cacheSet } from "../utils/cache.util.js";
 
 export async function shorten(originalUrl) {
   const result = await checkUrlExists(originalUrl);
@@ -26,4 +32,37 @@ export async function shorten(originalUrl) {
     message: "URL shortened successfully",
     shortUrl,
   };
+}
+
+export async function getOriginalUrl(urlCode) {
+  try {
+    const cachedUrl = await cacheGet(urlCode);
+    if (cachedUrl) {
+      return {
+        success: true,
+        originalUrl: cachedUrl,
+        message: "URL fetched from cache",
+      };
+    }
+
+    const { success, message, data } = await getUrlByCode(urlCode);
+    if (!success || !data) {
+      return {
+        success: false,
+        originalUrl: null,
+        message,
+      };
+    }
+
+    await cacheSet(urlCode, data.originalUrl);
+
+    return {
+      success: true,
+      originalUrl: data.originalUrl,
+      message,
+    };
+  } catch (error) {
+    console.error("Error in getOriginalUrl service:", error);
+    throw error;
+  }
 }

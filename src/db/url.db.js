@@ -54,3 +54,23 @@ export async function updateUrl(id, data, tx) {
     data: updatedUrl,
   };
 }
+
+export async function getUrlByCode(urlCode) {
+  const url = await prisma.link.findUnique({
+    where: { shortCode: urlCode },
+  });
+
+  if (url) {
+    return {
+      success: true,
+      message: "URL found",
+      data: url,
+    };
+  }
+
+  return {
+    success: false,
+    message: "URL not found",
+    data: null,
+  };
+}
